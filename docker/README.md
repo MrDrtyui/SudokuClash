@@ -27,7 +27,15 @@ cd /Users/ila/dev/pet/sudoku
 make env
 ```
 
-This creates `docker/.env` and auto-fills local defaults plus generated secrets for local use.
+This first tries to decrypt `docker/.secrets.env.enc` into `docker/.secrets.env` when
+`SUDOKU_SECRETS_KEY` is present, then creates `docker/.env` and auto-fills local defaults.
+
+If you are using the encrypted secrets flow on a new machine:
+
+```bash
+export SUDOKU_SECRETS_KEY='your-shared-master-key'
+make env
+```
 
 You only need manual values if you want external integrations such as:
 
@@ -62,10 +70,11 @@ make run
 
 `make run` will:
 
-1. bootstrap `docker/.env`
-2. dump the source DB if `AUTO_DUMP_ON_RUN=true`
-3. import the latest dump if `AUTO_MIGRATE_ON_RUN=true`
-4. start the full compose stack
+1. decrypt `docker/.secrets.env.enc` if `SUDOKU_SECRETS_KEY` is available
+2. bootstrap `docker/.env`
+3. import the committed dump into compose postgres
+4. sync the postgres role password to the value in `docker/.env`
+5. start the full compose stack
 
 Other useful commands:
 

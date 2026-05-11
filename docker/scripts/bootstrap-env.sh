@@ -63,11 +63,11 @@ ensure_nonplaceholder() {
   fi
 }
 
-ensure_nonplaceholder "POSTGRES_PASSWORD" "changeme" "$(random_hex 16)"
 ensure_nonplaceholder "JWT_SECRET" "change-me-before-production" "$(random_hex 24)"
 ensure_value "COMPOSE_PROJECT_NAME" "sudoku"
 ensure_value "POSTGRES_DB" "appdb"
 ensure_value "POSTGRES_USER" "postgres"
+ensure_value "POSTGRES_PASSWORD" "changeme"
 ensure_value "POSTGRES_PORT" "5433"
 ensure_value "REDIS_PORT" "6380"
 ensure_value "NGINX_HTTP_PORT" "8088"

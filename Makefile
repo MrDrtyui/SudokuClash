@@ -12,13 +12,13 @@ else
 COMPOSE := docker-compose
 endif
 
-.PHONY: help env check run build up down restart logs ps tunnel stop clean migrate-db export-db import-db validate ensure-dump
+.PHONY: help env secrets check run build up down restart logs ps tunnel stop clean migrate-db export-db import-db validate ensure-dump sync-db-creds
 
 help:
 	@echo "Sudoku stack commands"
 	@echo ""
-	@echo "  make env          - create and auto-fill docker/.env"
-	@echo "                     also auto-load local docker/.secrets.env if present"
+	@echo "  make env          - decrypt secrets if possible, then create and auto-fill docker/.env"
+	@echo "  make secrets      - decrypt docker/.secrets.env.enc into docker/.secrets.env"
 	@echo "  make validate     - validate compose config"
 	@echo "  make build        - build the Docker images"
 	@echo "  make run          - one-command local start for the full stack"
@@ -28,12 +28,18 @@ help:
 	@echo "  make restart      - restart the stack"
 	@echo "  make logs         - tail compose logs"
 	@echo "  make ps           - show running services"
+	@echo "  make sync-db-creds - sync docker postgres role password with docker/.env"
 	@echo "  make migrate-db   - import the committed/latest dump into compose postgres"
 	@echo "  make export-db    - manually create a fresh dump from the current source DB"
 	@echo "  make import-db DUMP=/abs/path/file.dump - import a specific dump into compose postgres"
 	@echo "  make clean        - remove compose stack and named volumes"
 
+secrets:
+	@chmod +x "$(DOCKER_DIR)/scripts/decrypt-secrets.sh"
+	@SECRETS_FILE='$(DOCKER_DIR)/.secrets.env' SECRETS_ENC_FILE='$(DOCKER_DIR)/.secrets.env.enc' "$(DOCKER_DIR)/scripts/decrypt-secrets.sh"
+
 env:
+	@$(MAKE) secrets
 	@chmod +x "$(DOCKER_DIR)/scripts/bootstrap-env.sh"
 	@ENV_FILE='$(ENV_FILE)' ENV_EXAMPLE='$(ENV_EXAMPLE)' "$(DOCKER_DIR)/scripts/bootstrap-env.sh"
 
@@ -55,7 +61,11 @@ ensure-dump:
 		exit 1; \
 	fi
 
-up: validate
+sync-db-creds: env
+	@chmod +x "$(DOCKER_DIR)/scripts/sync-postgres-password.sh"
+	@set -a; . "$(ENV_FILE)"; set +a; COMPOSE_BIN='$(COMPOSE)' ENV_FILE='$(ENV_FILE)' "$(DOCKER_DIR)/scripts/sync-postgres-password.sh"
+
+up: validate sync-db-creds
 	@$(COMPOSE) --env-file "$(ENV_FILE)" -f "$(COMPOSE_FILE)" up -d
 	@echo "Stack is up. Open http://localhost:$$(grep '^NGINX_HTTP_PORT=' "$(ENV_FILE)" | cut -d= -f2 || echo 8088)"
 
