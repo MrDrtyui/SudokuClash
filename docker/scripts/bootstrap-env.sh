@@ -5,6 +5,14 @@ SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 DOCKER_DIR="$(dirname "$SCRIPT_DIR")"
 ENV_FILE="${ENV_FILE:-${DOCKER_DIR}/.env}"
 ENV_EXAMPLE="${ENV_EXAMPLE:-${DOCKER_DIR}/.env.example}"
+SECRETS_FILE="${SECRETS_FILE:-${DOCKER_DIR}/.secrets.env}"
+
+if [ -f "${SECRETS_FILE}" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "${SECRETS_FILE}"
+  set +a
+fi
 
 if [ ! -f "${ENV_FILE}" ]; then
   cp "${ENV_EXAMPLE}" "${ENV_FILE}"

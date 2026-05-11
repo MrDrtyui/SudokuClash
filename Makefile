@@ -18,6 +18,7 @@ help:
 	@echo "Sudoku stack commands"
 	@echo ""
 	@echo "  make env          - create and auto-fill docker/.env"
+	@echo "                     also auto-load local docker/.secrets.env if present"
 	@echo "  make validate     - validate compose config"
 	@echo "  make build        - build the Docker images"
 	@echo "  make run          - one-command local start for the full stack"
