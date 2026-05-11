@@ -1,0 +1,1004 @@
+openapi: 3.0.3
+info:
+  title: Competitive Sudoku Backend API
+  version: 0.1.0
+  description: |
+    MVP backend for a competitive Sudoku platform.
+
+    Authentication for protected REST endpoints uses a Bearer access token.
+    WebSocket connections use `GET /ws?token=<access_token>&matchId=<match_id>`.
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: Health
+  - name: Auth
+  - name: Users
+  - name: Matchmaking
+  - name: Matches
+  - name: Daily
+  - name: Leaderboards
+  - name: Skins
+  - name: Payments
+  - name: Subscription
+  - name: Docs
+paths:
+  /healthz:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /openapi.yaml:
+    get:
+      tags: [Docs]
+      summary: Get OpenAPI specification
+      responses:
+        '200':
+          description: OpenAPI YAML
+          content:
+            application/yaml:
+              schema:
+                type: string
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionTokens'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout current refresh session
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Get current user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+    patch:
+      tags: [Users]
+      summary: Update current user profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /users/me/skins:
+    get:
+      tags: [Users, Skins]
+      summary: Get owned skins for current user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of owned skins
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Skin'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Get public user profile
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Public user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /matchmaking/join:
+    post:
+      tags: [Matchmaking]
+      summary: Join matchmaking queue
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchmakingRequest'
+      responses:
+        '201':
+          description: Match found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchmakingFoundResponse'
+        '202':
+          description: Queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueuedResponse'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /matchmaking/leave:
+    post:
+      tags: [Matchmaking]
+      summary: Leave matchmaking queue
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchmakingRequest'
+      responses:
+        '200':
+          description: Left queue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /matches/history:
+    get:
+      tags: [Matches]
+      summary: Get current user's match history
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Match history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Match'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /matches/{id}:
+    get:
+      tags: [Matches]
+      summary: Get match by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MatchID'
+      responses:
+        '200':
+          description: Match
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Match'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /matches/{id}/replay:
+    get:
+      tags: [Matches]
+      summary: Get replay moves for a match
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MatchID'
+      responses:
+        '200':
+          description: Match move list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MatchMove'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /matches/{id}/analysis:
+    get:
+      tags: [Matches]
+      summary: Get or generate AI-style match analysis
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MatchID'
+      responses:
+        '200':
+          description: Match analysis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /daily/:
+    get:
+      tags: [Daily]
+      summary: Get today's daily challenge
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Daily challenge and puzzle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyChallengePayload'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /daily/submit:
+    post:
+      tags: [Daily]
+      summary: Submit today's daily challenge result
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DailySubmitRequest'
+      responses:
+        '200':
+          description: Submitted result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyChallengeResult'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /daily/leaderboard:
+    get:
+      tags: [Daily]
+      summary: Get today's daily challenge leaderboard
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Daily leaderboard
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DailyChallengeResult'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /leaderboards/global:
+    get:
+      tags: [Leaderboards]
+      summary: Get global leaderboard
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Global leaderboard
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /leaderboards/countries:
+    get:
+      tags: [Leaderboards]
+      summary: Get available countries for leaderboard filtering
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Country codes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /leaderboards/countries/{country}:
+    get:
+      tags: [Leaderboards]
+      summary: Get country leaderboard
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: country
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Country leaderboard
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /leaderboards/cities:
+    get:
+      tags: [Leaderboards]
+      summary: Get available cities for leaderboard filtering
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: City list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /leaderboards/cities/{city}:
+    get:
+      tags: [Leaderboards]
+      summary: Get city leaderboard
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: city
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: City leaderboard
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /skins/:
+    get:
+      tags: [Skins]
+      summary: Get all available skins
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Skins
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Skin'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /skins/purchase:
+    post:
+      tags: [Skins]
+      summary: Purchase or unlock a skin
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseSkinRequest'
+      responses:
+        '200':
+          description: Purchased
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /payments/create-checkout-session:
+    post:
+      tags: [Payments]
+      summary: Create Stripe checkout session
+      security:
+        - bearerAuth: []
+      responses:
+        '501':
+          description: Not implemented in MVP
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /payments/webhook:
+    post:
+      tags: [Payments]
+      summary: Stripe webhook
+      security:
+        - bearerAuth: []
+      responses:
+        '501':
+          description: Not implemented in MVP
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /subscription/me:
+    get:
+      tags: [Subscription]
+      summary: Get current subscription state
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Subscription payload
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /subscription/cancel:
+    post:
+      tags: [Subscription]
+      summary: Cancel current subscription
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    MatchID:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    ErrorResponse:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    OkResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+
+    RegisterRequest:
+      type: object
+      required: [username, email, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 32
+          example: sudoku_pro
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          minLength: 8
+          maxLength: 72
+          example: supersecret123
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        avatarUrl:
+          type: string
+          nullable: true
+        countryCode:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+
+    MatchmakingRequest:
+      type: object
+      properties:
+        mode:
+          type: string
+          example: ranked
+
+    PurchaseSkinRequest:
+      type: object
+      required: [skinId]
+      properties:
+        skinId:
+          type: string
+          format: uuid
+
+    DailySubmitRequest:
+      type: object
+      required: [completionTimeMs, mistakes]
+      properties:
+        completionTimeMs:
+          type: integer
+          format: int64
+          example: 120000
+        mistakes:
+          type: integer
+          example: 3
+        hintsUsed:
+          type: integer
+          example: 0
+
+    AuthResponse:
+      type: object
+      required: [user, tokens]
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        tokens:
+          $ref: '#/components/schemas/SessionTokens'
+
+    SessionTokens:
+      type: object
+      required: [accessToken, refreshToken, expiresInSec]
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresInSec:
+          type: integer
+          format: int64
+
+    QueuedResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: queued
+        mode:
+          type: string
+          example: ranked
+
+    MatchmakingFoundResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: matched
+        matchId:
+          type: string
+          format: uuid
+        opponentId:
+          type: string
+          format: uuid
+        puzzle:
+          $ref: '#/components/schemas/Puzzle'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        countryCode:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        eloRating:
+          type: integer
+        peakElo:
+          type: integer
+        wins:
+          type: integer
+        losses:
+          type: integer
+        draws:
+          type: integer
+        currentStreak:
+          type: integer
+        maxStreak:
+          type: integer
+        experience:
+          type: integer
+        level:
+          type: integer
+        subscriptionType:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Puzzle:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        difficulty:
+          type: string
+        seed:
+          type: string
+        solution:
+          type: array
+          items:
+            type: array
+            items:
+              type: integer
+        initialBoard:
+          type: array
+          items:
+            type: array
+            items:
+              type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    Match:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        player1Id:
+          type: string
+          format: uuid
+        player2Id:
+          type: string
+          format: uuid
+        puzzleId:
+          type: string
+          format: uuid
+        winnerId:
+          type: string
+          format: uuid
+          nullable: true
+        player1EloBefore:
+          type: integer
+        player1EloAfter:
+          type: integer
+        player2EloBefore:
+          type: integer
+        player2EloAfter:
+          type: integer
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+          nullable: true
+        matchDurationMs:
+          type: integer
+          format: int64
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    MatchMove:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        matchId:
+          type: string
+          format: uuid
+        playerId:
+          type: string
+          format: uuid
+        rowIndex:
+          type: integer
+        colIndex:
+          type: integer
+        value:
+          type: integer
+        isCorrect:
+          type: boolean
+        moveNumber:
+          type: integer
+        timeFromStartMs:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+
+    DailyChallenge:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        challengeDate:
+          type: string
+          format: date
+        puzzleId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+
+    DailyChallengePayload:
+      type: object
+      properties:
+        challenge:
+          $ref: '#/components/schemas/DailyChallenge'
+        puzzle:
+          $ref: '#/components/schemas/Puzzle'
+
+    DailyChallengeResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        challengeId:
+          type: string
+          format: uuid
+        completionTimeMs:
+          type: integer
+          format: int64
+        mistakesCount:
+          type: integer
+        hintsUsed:
+          type: integer
+        score:
+          type: integer
+        completed:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    Skin:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        previewUrl:
+          type: string
+          nullable: true
+        priceUsd:
+          type: number
+          format: double
+        isPremium:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    AnalysisResponse:
+      type: object
+      properties:
+        matchId:
+          type: string
+          format: uuid
+        analysis:
+          type: object
+          additionalProperties: true

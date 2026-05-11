@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: apps
+  labels:
+    app.kubernetes.io/managed-by: endfield
+    endfield.io/component: postgres
+    endfield.io/fieldId: postgres
+    endfield.io/resourceRole: service
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres
+    endfield.io/fieldId: postgres
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: postgresql
+      protocol: TCP

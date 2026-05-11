@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "project_path": "/Users/ila/dev/pet/sudoku/infra",
+  "fields": [
+    {
+      "id": "node_1778418237275_1",
+      "x": -86.67506762223618,
+      "y": -88.49777780524703,
+      "label": "postgres"
+    },
+    {
+      "id": "node_1778418285242_2",
+      "x": -401.8625577927097,
+      "y": 7.98705246576364,
+      "label": "redis"
+    }
+  ],
+  "connections": [],
+  "viewport": {
+    "pan_x": 1019.785711218351,
+    "pan_y": 366.4596667016899,
+    "zoom": 1.275
+  },
+  "cluster_target": null
+}
